@@ -68,7 +68,8 @@
             <h1 class="display-4">Participa en las Elecciones 2025</h1>
             <p>Ejerce tu derecho al voto de forma rápida, segura y transparente desde cualquier lugar.</p>
             
-            <form action="seleccionRegion.jsp" method="GET" class="row justify-content-center g-3" onsubmit="return validarDNI()">
+            <!-- ✅ CORREGIDO: Cambiado action al servlet -->
+            <form action="${pageContext.request.contextPath}/votacion/seleccion-region" method="GET" class="row justify-content-center g-3" onsubmit="return validarDNI()">
                 <div class="col-md-5">
                     <div class="form-group">
                         <input type="text" name="dni" class="form-control form-control-lg text-center" placeholder="Ingresa tu número de DNI" required maxlength="8" pattern="[0-9]{8}">
