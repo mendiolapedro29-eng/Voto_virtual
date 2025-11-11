@@ -3,6 +3,7 @@ package com.mycompany.sistemavotacion.model;
 import java.util.Date;
 
 public class Eleccion {
+    //Atributos privados
     private int id;
     private String nombre;
     private Date fechaEleccion;
@@ -15,35 +16,50 @@ public class Eleccion {
         this.activa = true;
     }
     
-    public Eleccion(String nombre, Date fechaEleccion) {
-        this();
+    public Eleccion(int id, String nombre, Date fechaEleccion, 
+            boolean activa, Date fechaCreacion) {
+        
+        this.id = id;
         this.nombre = nombre;
         this.fechaEleccion = fechaEleccion;
+        this.activa = activa;
+        this.fechaCreacion = fechaCreacion;
     }
     
     // Getters y Setters
-    public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
-    
-    public String getNombre() { return nombre; }
-    public void setNombre(String nombre) { this.nombre = nombre; }
-    
-    public Date getFechaEleccion() { return fechaEleccion; }
-    public void setFechaEleccion(Date fechaEleccion) { this.fechaEleccion = fechaEleccion; }
-    
-    public boolean isActiva() { return activa; }
-    public void setActiva(boolean activa) { this.activa = activa; }
-    
-    public Date getFechaCreacion() { return fechaCreacion; }
-    public void setFechaCreacion(Date fechaCreacion) { this.fechaCreacion = fechaCreacion; }
-    
-    @Override
-    public String toString() {
-        return "Eleccion{" +
-                "id=" + id +
-                ", nombre='" + nombre + '\'' +
-                ", fechaEleccion=" + fechaEleccion +
-                ", activa=" + activa +
-                '}';
+    public int getId(){
+        return id;
     }
-}
+    public void setId(int id){
+        this.id=id;
+    }
+    
+    public String getNombre(){
+        return nombre;
+    }
+    public void setNombre(String nombre){
+        this.nombre=nombre;
+    } 
+    
+    public Date getFechaEleccion(){
+        return fechaEleccion;
+    } 
+    public void setFechaEleccion(Date fechaEleccion){
+        this.fechaEleccion=fechaEleccion;
+    } 
+            
+    public boolean isActiva(){
+        return activa;
+    } 
+    public void setActiva(boolean activa){
+        this.activa=activa;
+    } 
+    
+    public Date getFechaCreacion(){
+        return fechaCreacion;
+    } 
+    public void setFechaCreacion(Date fechaCreacion){
+        this.fechaCreacion=fechaCreacion;
+    } 
+    
+    }

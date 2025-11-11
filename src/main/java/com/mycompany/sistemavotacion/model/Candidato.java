@@ -1,27 +1,32 @@
 package com.mycompany.sistemavotacion.model;
 
-public class Candidate {
+public class Candidato {
     private int id;
     private String nombre;
-    private String partidoPolitico;
-    private String cargo; // PRESIDENTE, CONGRESISTA, etc.
+    private String partido;
+    private String cargo;
     private int regionId;
     private String foto;
     private String propuestas;
     private boolean activo;
     private int eleccionId;
+    private int votos;
+    private double porcentaje;
     
     // Constructores
-    public Candidate() {
+    public Candidato() {
         this.activo = true;
+        this.eleccionId = 1; // Elección por defecto
     }
     
-    public Candidate(String nombre, String partidoPolitico, String cargo, int eleccionId) {
+    public Candidato(int id, String nombre, String partido, String cargo, int votos, double porcentaje) {
         this();
+        this.id = id;
         this.nombre = nombre;
-        this.partidoPolitico = partidoPolitico;
+        this.partido = partido;
         this.cargo = cargo;
-        this.eleccionId = eleccionId;
+        this.votos = votos;
+        this.porcentaje = porcentaje;
     }
     
     // Getters y Setters
@@ -31,8 +36,8 @@ public class Candidate {
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
     
-    public String getPartidoPolitico() { return partidoPolitico; }
-    public void setPartidoPolitico(String partidoPolitico) { this.partidoPolitico = partidoPolitico; }
+    public String getPartido() { return partido; }
+    public void setPartido(String partido) { this.partido = partido; }
     
     public String getCargo() { return cargo; }
     public void setCargo(String cargo) { this.cargo = cargo; }
@@ -52,16 +57,21 @@ public class Candidate {
     public int getEleccionId() { return eleccionId; }
     public void setEleccionId(int eleccionId) { this.eleccionId = eleccionId; }
     
+    public int getVotos() { return votos; }
+    public void setVotos(int votos) { this.votos = votos; }
+    
+    public double getPorcentaje() { return porcentaje; }
+    public void setPorcentaje(double porcentaje) { this.porcentaje = porcentaje; }
+    
     @Override
     public String toString() {
-        return "Candidate{" +
+        return "Candidato{" +
                 "id=" + id +
                 ", nombre='" + nombre + '\'' +
-                ", partidoPolitico='" + partidoPolitico + '\'' +
+                ", partido='" + partido + '\'' +
                 ", cargo='" + cargo + '\'' +
-                ", regionId=" + regionId +
-                ", activo=" + activo +
-                ", eleccionId=" + eleccionId +
+                ", votos=" + votos +
+                ", porcentaje=" + porcentaje +
                 '}';
     }
 }

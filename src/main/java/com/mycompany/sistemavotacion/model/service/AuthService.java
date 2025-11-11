@@ -1,48 +1,43 @@
 package com.mycompany.sistemavotacion.model.service;
 
 import com.mycompany.sistemavotacion.model.Usuario;
-import com.mycompany.sistemavotacion.model.dao.UsuarioDAO;
-import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 
 public class AuthService {
     private static final Logger logger = Logger.getLogger(AuthService.class.getName());
     
-    private UsuarioDAO usuarioDAO;
+    // Base de datos simulada de usuarios
+    private static final Map<String, Usuario> usuariosSimulados = new HashMap<>();
     
-    public AuthService() {
-        this.usuarioDAO = new UsuarioDAO();
+    static {
+        // Inicializar algunos usuarios de prueba
+        usuariosSimulados.put("12345678", new Usuario(1, "12345678", "Juan", "Pérez", false));
+        usuariosSimulados.put("87654321", new Usuario(2, "87654321", "María", "Gómez", false));
+        usuariosSimulados.put("11111111", new Usuario(3, "11111111", "Carlos", "López", true)); // Ya votó
+        usuariosSimulados.put("22222222", new Usuario(4, "22222222", "Ana", "Rodríguez", false));
     }
     
     public Usuario autenticarPorDNI(String dni) {
-        try {
-            Usuario usuario = usuarioDAO.buscarPorDNI(dni);
-            if (usuario != null) {
-                logger.info("Usuario autenticado: " + usuario.getDni());
-            } else {
-                logger.warning("Intento de autenticación fallido con DNI: " + dni);
-            }
-            return usuario;
-        } catch (SQLException e) {
-            logger.severe("Error en autenticación: " + e.getMessage());
-            return null;
+        logger.info("🔐 Autenticando usuario con DNI: " + dni);
+        
+        Usuario usuario = usuariosSimulados.get(dni);
+        if (usuario != null) {
+            logger.info("✅ Usuario encontrado: " + usuario.getNombres() + " " + usuario.getApellidos());
+        } else {
+            logger.warning("❌ Usuario no encontrado para DNI: " + dni);
         }
+        
+        return usuario;
     }
     
-    public boolean verificarElegibilidad(Usuario usuario) {
-        return usuario != null && !usuario.isHaVotado();
-    }
-    
-    public boolean marcarComoVotado(int usuarioId) {
-        try {
-            boolean exito = usuarioDAO.marcarComoVotado(usuarioId);
-            if (exito) {
-                logger.info("Usuario marcado como votado: " + usuarioId);
-            }
-            return exito;
-        } catch (SQLException e) {
-            logger.severe("Error al marcar como votado: " + e.getMessage());
-            return false;
+    // Método para simular que un usuario ya votó
+    public void marcarComoVotado(String dni) {
+        Usuario usuario = usuariosSimulados.get(dni);
+        if (usuario != null) {
+            usuario.setHaVotado(true);
+            logger.info("✅ Usuario " + dni + " marcado como votado");
         }
     }
 }

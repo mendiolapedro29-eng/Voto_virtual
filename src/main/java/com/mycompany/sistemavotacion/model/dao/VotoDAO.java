@@ -3,123 +3,232 @@ package com.mycompany.sistemavotacion.model.dao;
 import com.mycompany.sistemavotacion.model.Voto;
 import com.mycompany.sistemavotacion.util.DatabaseUtil;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Logger;
 
 public class VotoDAO {
     private static final Logger logger = Logger.getLogger(VotoDAO.class.getName());
     
-    private static final String INSERT_VOTO = 
-        "INSERT INTO votos (usuario_id, candidato_id, eleccion_id, hash_voto, ip_votacion) VALUES (?, ?, ?, ?, ?)";
-    private static final String COUNT_VOTOS_POR_CANDIDATO = 
-        "SELECT candidato_id, COUNT(*) as total FROM votos WHERE eleccion_id = ? GROUP BY candidato_id";
-    private static final String COUNT_VOTOS_POR_REGION = 
-        "SELECT c.region_id, COUNT(*) as total FROM votos v JOIN candidatos c ON v.candidato_id = c.id WHERE v.eleccion_id = ? GROUP BY c.region_id";
-    private static final String VERIFICAR_USUARIO_YA_VOTO = 
-        "SELECT COUNT(*) FROM votos WHERE usuario_id = ? AND eleccion_id = ?";
-    private static final String OBTENER_TODOS_VOTOS = 
-        "SELECT * FROM votos ORDER BY timestamp DESC";
+    // Almacenamiento en memoria para simulación
+    private static final List<Voto> votosSimulados = new ArrayList<>();
+    private static int nextVotoId = 1;
     
-    public boolean insertar(Voto voto) throws SQLException {
-        Connection conn = null;
-        PreparedStatement stmt = null;
+    // Inicializar algunos votos de ejemplo
+    static {
+        inicializarVotosSimulados();
+    }
+    
+    private static void inicializarVotosSimulados() {
+        // Agregar algunos votos de ejemplo para tener datos iniciales
+        Voto voto1 = new Voto();
+        voto1.setId(nextVotoId++);
+        voto1.setUsuarioId(101);
+        voto1.setCandidatoId(1); // Pedro Castillo
+        voto1.setEleccionId(1);
+        voto1.setTimestamp(new Timestamp(System.currentTimeMillis() - 3600000)); // 1 hora atrás
+        voto1.setHashVoto("hash_simulado_001");
+        voto1.setIpVotacion("192.168.1.100");
+        votosSimulados.add(voto1);
+        
+        Voto voto2 = new Voto();
+        voto2.setId(nextVotoId++);
+        voto2.setUsuarioId(102);
+        voto2.setCandidatoId(2); // Keiko Fujimori
+        voto2.setEleccionId(1);
+        voto2.setTimestamp(new Timestamp(System.currentTimeMillis() - 1800000)); // 30 min atrás
+        voto2.setHashVoto("hash_simulado_002");
+        voto2.setIpVotacion("192.168.1.101");
+        votosSimulados.add(voto2);
+        
+        Voto voto3 = new Voto();
+        voto3.setId(nextVotoId++);
+        voto3.setUsuarioId(103);
+        voto3.setCandidatoId(3); // Yonhy Lescano
+        voto3.setEleccionId(1);
+        voto3.setTimestamp(new Timestamp(System.currentTimeMillis() - 900000)); // 15 min atrás
+        voto3.setHashVoto("hash_simulado_003");
+        voto3.setIpVotacion("192.168.1.102");
+        votosSimulados.add(voto3);
+        
+        logger.info("✅ " + votosSimulados.size() + " votos simulados inicializados");
+    }
+    
+    public boolean insertar(Voto voto) {
+        logger.info("📥 [SIMULACIÓN] Insertando voto para usuario: " + voto.getUsuarioId() + 
+                   ", candidato: " + voto.getCandidatoId());
         
         try {
-            conn = DatabaseUtil.getConnection();
-            stmt = conn.prepareStatement(INSERT_VOTO, Statement.RETURN_GENERATED_KEYS);
+            // Verificar si el usuario ya votó
+            if (usuarioYaVoto(voto.getUsuarioId(), voto.getEleccionId())) {
+                logger.warning("⚠️ Usuario " + voto.getUsuarioId() + " ya votó en esta elección");
+                return false;
+            }
             
-            stmt.setInt(1, voto.getUsuarioId());
-            stmt.setInt(2, voto.getCandidatoId());
-            stmt.setInt(3, voto.getEleccionId());
-            stmt.setString(4, voto.getHashVoto());
-            stmt.setString(5, voto.getIpVotacion());
+            // Asignar ID y timestamp
+            voto.setId(nextVotoId++);
+            voto.setTimestamp(new Timestamp(System.currentTimeMillis()));
             
-            int affectedRows = stmt.executeUpdate();
+            // Generar hash único si no viene
+            if (voto.getHashVoto() == null || voto.getHashVoto().isEmpty()) {
+                voto.setHashVoto("hash_" + System.currentTimeMillis() + "_" + voto.getUsuarioId());
+            }
             
-            if (affectedRows > 0) {
-                try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
-                    if (generatedKeys.next()) {
-                        voto.setId(generatedKeys.getInt(1));
-                    }
+            // Agregar a la lista simulada
+            synchronized (votosSimulados) {
+                votosSimulados.add(voto);
+            }
+            
+            logger.info("✅ Voto registrado exitosamente - ID: " + voto.getId());
+            return true;
+            
+        } catch (Exception e) {
+            logger.severe("❌ Error insertando voto simulado: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    public boolean usuarioYaVoto(int usuarioId, int eleccionId) {
+        logger.info("🔍 [SIMULACIÓN] Verificando si usuario " + usuarioId + " ya votó en elección " + eleccionId);
+        
+        synchronized (votosSimulados) {
+            for (Voto voto : votosSimulados) {
+                if (voto.getUsuarioId() == usuarioId && voto.getEleccionId() == eleccionId) {
+                    return true;
                 }
             }
-            
-            return affectedRows > 0;
-            
-        } finally {
-            DatabaseUtil.close(null, stmt, conn);
         }
+        return false;
     }
     
-    public boolean usuarioYaVoto(int usuarioId, int eleccionId) throws SQLException {
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
+    public List<Object[]> obtenerResultadosPorCandidato(int eleccionId) {
+        logger.info("📊 [SIMULACIÓN] Obteniendo resultados por candidato para elección: " + eleccionId);
         
-        try {
-            conn = DatabaseUtil.getConnection();
-            stmt = conn.prepareStatement(VERIFICAR_USUARIO_YA_VOTO);
-            stmt.setInt(1, usuarioId);
-            stmt.setInt(2, eleccionId);
-            rs = stmt.executeQuery();
-            
-            if (rs.next()) {
-                return rs.getInt(1) > 0;
+        Map<Integer, Integer> conteoPorCandidato = new HashMap<>();
+        
+        synchronized (votosSimulados) {
+            for (Voto voto : votosSimulados) {
+                if (voto.getEleccionId() == eleccionId) {
+                    int candidatoId = voto.getCandidatoId();
+                    conteoPorCandidato.put(candidatoId, conteoPorCandidato.getOrDefault(candidatoId, 0) + 1);
+                }
             }
-            return false;
-            
-        } finally {
-            DatabaseUtil.close(rs, stmt, conn);
         }
-    }
-    
-    public List<Object[]> obtenerResultadosPorCandidato(int eleccionId) throws SQLException {
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
+        
         List<Object[]> resultados = new ArrayList<>();
+        for (Map.Entry<Integer, Integer> entry : conteoPorCandidato.entrySet()) {
+            Object[] resultado = new Object[2];
+            resultado[0] = entry.getKey(); // candidato_id
+            resultado[1] = entry.getValue(); // total votos
+            resultados.add(resultado);
+        }
         
-        try {
-            conn = DatabaseUtil.getConnection();
-            stmt = conn.prepareStatement(COUNT_VOTOS_POR_CANDIDATO);
-            stmt.setInt(1, eleccionId);
-            rs = stmt.executeQuery();
-            
-            while (rs.next()) {
-                Object[] resultado = new Object[2];
-                resultado[0] = rs.getInt("candidato_id");
-                resultado[1] = rs.getInt("total");
-                resultados.add(resultado);
-            }
-            return resultados;
-            
-        } finally {
-            DatabaseUtil.close(rs, stmt, conn);
+        logger.info("📈 Resultados obtenidos: " + resultados.size() + " candidatos con votos");
+        return resultados;
+    }
+    
+    public List<Voto> obtenerTodosVotos() {
+        logger.info("📋 [SIMULACIÓN] Obteniendo todos los votos - Total: " + votosSimulados.size());
+        
+        // Retornar copia para evitar modificación externa
+        synchronized (votosSimulados) {
+            return new ArrayList<>(votosSimulados);
         }
     }
     
-    public List<Voto> obtenerTodosVotos() throws SQLException {
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
-        List<Voto> votos = new ArrayList<>();
+    // NUEVOS MÉTODOS ÚTILES PARA SIMULACIÓN
+    
+    /**
+     * Obtiene votos por candidato específico
+     */
+    public List<Voto> obtenerVotosPorCandidato(int candidatoId) {
+        logger.info("👤 [SIMULACIÓN] Obteniendo votos para candidato: " + candidatoId);
         
-        try {
-            conn = DatabaseUtil.getConnection();
-            stmt = conn.prepareStatement(OBTENER_TODOS_VOTOS);
-            rs = stmt.executeQuery();
-            
-            while (rs.next()) {
-                votos.add(mapResultSetToVoto(rs));
+        List<Voto> votosCandidato = new ArrayList<>();
+        synchronized (votosSimulados) {
+            for (Voto voto : votosSimulados) {
+                if (voto.getCandidatoId() == candidatoId) {
+                    votosCandidato.add(voto);
+                }
             }
-            return votos;
-            
-        } finally {
-            DatabaseUtil.close(rs, stmt, conn);
+        }
+        return votosCandidato;
+    }
+    
+    /**
+ * Obtiene estadísticas generales de votación
+ */
+public Map<String, Object> obtenerEstadisticasVotacion(int eleccionId) {
+    logger.info("📈 [SIMULACIÓN] Obteniendo estadísticas para elección: " + eleccionId);
+    
+    Map<String, Object> stats = new HashMap<>();
+    int totalVotos = 0;
+    Map<Integer, Integer> votosPorCandidato = new HashMap<>();
+    
+    synchronized (votosSimulados) {
+        for (Voto voto : votosSimulados) {
+            if (voto.getEleccionId() == eleccionId) {
+                totalVotos++;
+                int candidatoId = voto.getCandidatoId();
+                votosPorCandidato.put(candidatoId, votosPorCandidato.getOrDefault(candidatoId, 0) + 1);
+            }
         }
     }
     
+    stats.put("totalVotos", totalVotos);
+    stats.put("votosPorCandidato", votosPorCandidato);
+    stats.put("fechaConsulta", new java.util.Date()); // ✅ CORREGIDO
+    
+    return stats;
+}
+    /**
+     * Simula la recepción de múltiples votos (útil para pruebas)
+     */
+    public void simularVotosMasivos(int cantidad, int eleccionId) {
+        logger.info("🎯 [SIMULACIÓN] Simulando " + cantidad + " votos masivos para elección " + eleccionId);
+        
+        Random random = new Random();
+        int[] candidatosIds = {1, 2, 3, 4, 5}; // IDs de candidatos presidentes
+        
+        for (int i = 0; i < cantidad; i++) {
+            Voto voto = new Voto();
+            voto.setId(nextVotoId++);
+            voto.setUsuarioId(1000 + i); // Usuarios únicos
+            voto.setCandidatoId(candidatosIds[random.nextInt(candidatosIds.length)]); // Candidato aleatorio
+            voto.setEleccionId(eleccionId);
+            voto.setTimestamp(new Timestamp(System.currentTimeMillis() - random.nextInt(3600000))); // Última hora
+            voto.setHashVoto("simulado_masivo_" + i);
+            voto.setIpVotacion("192.168.1." + (100 + random.nextInt(100)));
+            
+            synchronized (votosSimulados) {
+                votosSimulados.add(voto);
+            }
+        }
+        
+        logger.info("✅ Simulación completada - Total votos: " + votosSimulados.size());
+    }
+    
+    /**
+     * Obtiene el total de votos registrados
+     */
+    public int obtenerTotalVotos() {
+        synchronized (votosSimulados) {
+            return votosSimulados.size();
+        }
+    }
+    
+    /**
+     * Limpia todos los votos (útil para pruebas)
+     */
+    public void limpiarVotos() {
+        logger.warning("🧹 [SIMULACIÓN] LIMPIANDO TODOS LOS VOTOS - Solo para desarrollo");
+        synchronized (votosSimulados) {
+            votosSimulados.clear();
+            nextVotoId = 1;
+            inicializarVotosSimulados(); // Volver a inicializar con datos básicos
+        }
+    }
+    
+    // Método de mapeo mantenido por compatibilidad
     private Voto mapResultSetToVoto(ResultSet rs) throws SQLException {
         Voto voto = new Voto();
         voto.setId(rs.getInt("id"));

@@ -20,12 +20,13 @@ public class Usuario {
         this.haVotado = false;
     }
     
-    public Usuario(String dni, String nombres, String apellidos, Date fechaNacimiento) {
+    public Usuario(int id, String dni, String nombres, String apellidos, boolean haVotado) {
         this();
+        this.id = id;
         this.dni = dni;
         this.nombres = nombres;
         this.apellidos = apellidos;
-        this.fechaNacimiento = fechaNacimiento;
+        this.haVotado = haVotado;
     }
     
     // Getters y Setters
@@ -67,6 +68,7 @@ public class Usuario {
                 ", nombres='" + nombres + '\'' +
                 ", apellidos='" + apellidos + '\'' +
                 ", haVotado=" + haVotado +
+                ", departamento='" + departamento + '\'' +
                 '}';
     }
 }

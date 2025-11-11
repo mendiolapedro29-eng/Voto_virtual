@@ -14,8 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
 
-@WebServlet(name = "AdmiServlet", urlPatterns = {"/admin/*"}) // ✅ CORREGIDO: agregué "/*"
-public class AdmiServlet extends HttpServlet { // ✅ CORREGIDO: el nombre de la clase
+@WebServlet(name = "AdminDashboardServlet", urlPatterns = {"/admin/*"})
+public class AdminDashboardServlet extends HttpServlet {
     private AdminService adminService;
     
     @Override
@@ -27,8 +27,8 @@ public class AdmiServlet extends HttpServlet { // ✅ CORREGIDO: el nombre de la
     protected void doGet(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
         
-        String pathInfo = request.getPathInfo(); // ✅ CORREGIDO: usar pathInfo en lugar de parameter
-        String action = "dashboard"; // Valor por defecto
+        String pathInfo = request.getPathInfo();
+        String action = "dashboard";
         
         if (pathInfo != null) {
             switch (pathInfo) {
@@ -47,6 +47,9 @@ public class AdmiServlet extends HttpServlet { // ✅ CORREGIDO: el nombre de la
                 case "/login":
                     action = "login";
                     break;
+                case "/historial":
+                    action = "historial"; // ✅ NUEVO: agregar historial
+                    break;
             }
         }
         
@@ -63,8 +66,11 @@ public class AdmiServlet extends HttpServlet { // ✅ CORREGIDO: el nombre de la
             case "carga-datos":
                 mostrarCargaDatos(request, response);
                 break;
+            case "historial": // ✅ NUEVO: caso para historial
+                mostrarHistorial(request, response);
+                break;
             case "login":
-                mostrarLoginAdmin(request, response); // ✅ NUEVO método para mostrar login
+                mostrarLoginAdmin(request, response);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/admin/dashboard");
@@ -100,31 +106,28 @@ public class AdmiServlet extends HttpServlet { // ✅ CORREGIDO: el nombre de la
         }
     }
     
-    // ✅ NUEVO método para mostrar la página de login
+    // ✅ CORREGIDO: Rutas según tu estructura
     private void mostrarLoginAdmin(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
-        request.getRequestDispatcher("/WEB-INF/views/admin/login.jsp").forward(request, response); // ✅ CORREGIDA la ruta
+        request.getRequestDispatcher("/adminLogin.jsp").forward(request, response);
     }
     
     private void mostrarDashboard(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
         
-        // Verificar si el administrador está logueado
         if (!verificarAdminLogueado(request)) {
-            response.sendRedirect(request.getContextPath() + "/admin/login"); // ✅ CORREGIDA la redirección
+            response.sendRedirect(request.getContextPath() + "/admin/login");
             return;
         }
         
         try {
-            // Obtener estadísticas para el dashboard
-            Map<String, Object> estadisticas = adminService.obtenerEstadisticasGenerales(1); // Elección por defecto
-            
+            Map<String, Object> estadisticas = adminService.obtenerEstadisticasGenerales(1);
             request.setAttribute("estadisticas", estadisticas);
-            request.getRequestDispatcher("/WEB-INF/views/admin/dashboard.jsp").forward(request, response); // ✅ CORREGIDA la ruta
+            request.getRequestDispatcher("/adminDashboard.jsp").forward(request, response);
             
         } catch (Exception e) {
             request.setAttribute("error", "Error al cargar dashboard: " + e.getMessage());
-            request.getRequestDispatcher("/WEB-INF/views/error/500.jsp").forward(request, response); // ✅ CORREGIDA la ruta
+            request.getRequestDispatcher("/error.jsp").forward(request, response);
         }
     }
     
@@ -132,14 +135,13 @@ public class AdmiServlet extends HttpServlet { // ✅ CORREGIDO: el nombre de la
             throws ServletException, IOException {
         
         if (!verificarAdminLogueado(request)) {
-            response.sendRedirect(request.getContextPath() + "/admin/login"); // ✅ CORREGIDA la redirección
+            response.sendRedirect(request.getContextPath() + "/admin/login");
             return;
         }
         
         try {
             Map<String, Object> estadisticas = adminService.obtenerEstadisticasGenerales(1);
             
-            // Si es una petición AJAX, devolver JSON
             if ("XMLHttpRequest".equals(request.getHeader("X-Requested-With"))) {
                 response.setContentType("application/json");
                 response.setCharacterEncoding("UTF-8");
@@ -148,7 +150,7 @@ public class AdmiServlet extends HttpServlet { // ✅ CORREGIDO: el nombre de la
             }
             
             request.setAttribute("estadisticas", estadisticas);
-            request.getRequestDispatcher("/WEB-INF/views/admin/estadisticas.jsp").forward(request, response); // ✅ CORREGIDA la ruta
+            request.getRequestDispatcher("/adminEstadisticas.jsp").forward(request, response);
             
         } catch (Exception e) {
             if ("XMLHttpRequest".equals(request.getHeader("X-Requested-With"))) {
@@ -156,8 +158,29 @@ public class AdmiServlet extends HttpServlet { // ✅ CORREGIDO: el nombre de la
                 response.getWriter().write("{\"error\": \"" + e.getMessage() + "\"}");
             } else {
                 request.setAttribute("error", "Error al cargar estadísticas: " + e.getMessage());
-                request.getRequestDispatcher("/WEB-INF/views/error/500.jsp").forward(request, response); // ✅ CORREGIDA la ruta
+                request.getRequestDispatcher("/error.jsp").forward(request, response);
             }
+        }
+    }
+    
+    // ✅ NUEVO: Método para historial
+    private void mostrarHistorial(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        
+        if (!verificarAdminLogueado(request)) {
+            response.sendRedirect(request.getContextPath() + "/admin/login");
+            return;
+        }
+        
+        try {
+            // Obtener datos del historial
+            List<Map<String, Object>> historial = adminService.obtenerHistorialVotos();
+            request.setAttribute("historial", historial);
+            request.getRequestDispatcher("/adminHistorial.jsp").forward(request, response);
+            
+        } catch (Exception e) {
+            request.setAttribute("error", "Error al cargar historial: " + e.getMessage());
+            request.getRequestDispatcher("/error.jsp").forward(request, response);
         }
     }
     
@@ -174,17 +197,17 @@ public class AdmiServlet extends HttpServlet { // ✅ CORREGIDO: el nombre de la
                 HttpSession session = request.getSession();
                 session.setAttribute("adminLogueado", true);
                 session.setAttribute("adminUsername", username);
-                session.setMaxInactiveInterval(30 * 60); // 30 minutos
+                session.setMaxInactiveInterval(30 * 60);
                 
-                response.sendRedirect(request.getContextPath() + "/admin/dashboard"); // ✅ CORREGIDA la redirección
+                response.sendRedirect(request.getContextPath() + "/admin/dashboard");
             } else {
                 request.setAttribute("error", "Credenciales inválidas");
-                request.getRequestDispatcher("/WEB-INF/views/admin/login.jsp").forward(request, response); // ✅ CORREGIDA la ruta
+                request.getRequestDispatcher("/adminLogin.jsp").forward(request, response);
             }
             
         } catch (Exception e) {
             request.setAttribute("error", "Error en autenticación: " + e.getMessage());
-            request.getRequestDispatcher("/WEB-INF/views/admin/login.jsp").forward(request, response); // ✅ CORREGIDA la ruta
+            request.getRequestDispatcher("/adminLogin.jsp").forward(request, response);
         }
     }
     
@@ -194,26 +217,19 @@ public class AdmiServlet extends HttpServlet { // ✅ CORREGIDO: el nombre de la
         if (session != null) {
             session.invalidate();
         }
-        response.sendRedirect(request.getContextPath() + "/admin/login"); // ✅ CORREGIDA la redirección
+        response.sendRedirect(request.getContextPath() + "/admin/login");
     }
     
     private void cargarDataset(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
         
         if (!verificarAdminLogueado(request)) {
-            response.sendRedirect(request.getContextPath() + "/admin/login"); // ✅ CORREGIDA la redirección
+            response.sendRedirect(request.getContextPath() + "/admin/login");
             return;
         }
         
         try {
-            // Aquí procesarías el archivo subido
-            // Por ahora, simulamos una carga
             List<Usuario> usuarios = new ArrayList<>();
-            
-            // Ejemplo de usuarios de prueba
-            usuarios.add(new Usuario("12345678", "Juan", "Pérez", new java.util.Date()));
-            usuarios.add(new Usuario("87654321", "María", "Gómez", new java.util.Date()));
-            
             boolean exito = adminService.cargarDatasetUsuarios(usuarios);
             
             if (exito) {
@@ -222,11 +238,11 @@ public class AdmiServlet extends HttpServlet { // ✅ CORREGIDO: el nombre de la
                 request.setAttribute("error", "Error al cargar el dataset");
             }
             
-            request.getRequestDispatcher("/WEB-INF/views/admin/carga-datos.jsp").forward(request, response); // ✅ CORREGIDO el nombre del archivo
+            request.getRequestDispatcher("/adminCargaDatos.jsp").forward(request, response);
             
         } catch (Exception e) {
             request.setAttribute("error", "Error al procesar dataset: " + e.getMessage());
-            request.getRequestDispatcher("/WEB-INF/views/admin/carga-datos.jsp").forward(request, response); // ✅ CORREGIDO el nombre del archivo
+            request.getRequestDispatcher("/adminCargaDatos.jsp").forward(request, response);
         }
     }
     
@@ -234,12 +250,11 @@ public class AdmiServlet extends HttpServlet { // ✅ CORREGIDO: el nombre de la
             throws ServletException, IOException {
         
         if (!verificarAdminLogueado(request)) {
-            response.sendRedirect(request.getContextPath() + "/admin/login"); // ✅ CORREGIDA la redirección
+            response.sendRedirect(request.getContextPath() + "/admin/login");
             return;
         }
         
         try {
-            // Generar reporte en diferentes formatos
             String formato = request.getParameter("formato");
             if (formato == null) formato = "pdf";
             
@@ -247,12 +262,12 @@ public class AdmiServlet extends HttpServlet { // ✅ CORREGIDO: el nombre de la
             
             if (!exito) {
                 request.setAttribute("error", "Error al generar reporte");
-                request.getRequestDispatcher("/WEB-INF/views/admin/estadisticas.jsp").forward(request, response); // ✅ CORREGIDA la ruta
+                request.getRequestDispatcher("/adminEstadisticas.jsp").forward(request, response);
             }
             
         } catch (Exception e) {
             request.setAttribute("error", "Error al generar reporte: " + e.getMessage());
-            request.getRequestDispatcher("/WEB-INF/views/admin/estadisticas.jsp").forward(request, response); // ✅ CORREGIDA la ruta
+            request.getRequestDispatcher("/adminEstadisticas.jsp").forward(request, response);
         }
     }
     
@@ -260,18 +275,18 @@ public class AdmiServlet extends HttpServlet { // ✅ CORREGIDO: el nombre de la
             throws ServletException, IOException {
         
         if (!verificarAdminLogueado(request)) {
-            response.sendRedirect(request.getContextPath() + "/admin/login"); // ✅ CORREGIDA la redirección
+            response.sendRedirect(request.getContextPath() + "/admin/login");
             return;
         }
         
         try {
             List<Usuario> usuarios = adminService.obtenerTodosUsuarios();
             request.setAttribute("usuarios", usuarios);
-            request.getRequestDispatcher("/WEB-INF/views/admin/usuarios.jsp").forward(request, response); // ✅ CORREGIDA la ruta
+            request.getRequestDispatcher("/adminUsuarios.jsp").forward(request, response);
             
         } catch (Exception e) {
             request.setAttribute("error", "Error al cargar usuarios: " + e.getMessage());
-            request.getRequestDispatcher("/WEB-INF/views/error/500.jsp").forward(request, response); // ✅ CORREGIDA la ruta
+            request.getRequestDispatcher("/error.jsp").forward(request, response);
         }
     }
     
@@ -279,11 +294,11 @@ public class AdmiServlet extends HttpServlet { // ✅ CORREGIDO: el nombre de la
             throws ServletException, IOException {
         
         if (!verificarAdminLogueado(request)) {
-            response.sendRedirect(request.getContextPath() + "/admin/login"); // ✅ CORREGIDA la redirección
+            response.sendRedirect(request.getContextPath() + "/admin/login");
             return;
         }
         
-        request.getRequestDispatcher("/WEB-INF/views/admin/carga-datos.jsp").forward(request, response); // ✅ CORREGIDO el nombre del archivo
+        request.getRequestDispatcher("/adminCargaDatos.jsp").forward(request, response);
     }
     
     private boolean verificarAdminLogueado(HttpServletRequest request) {
